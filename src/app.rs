@@ -5,6 +5,7 @@ use leptos_router::*;
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     provide_meta_context(cx);
+
     view! {
         cx,
         <Stylesheet id="leptos" href="/pkg/leptos_start.css"/>
@@ -19,28 +20,48 @@ pub fn App(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(ApiEndpoint, "/api")]
-pub async fn api_endpoint() -> Result<(), ServerFnError> {
-    Err(ServerFnError::ServerError(
-        "hello from api_endpoint".to_string(),
-    ))
+#[component]
+fn HomePage(cx: Scope) -> impl IntoView {
+    let data_from_route_handler = use_context::<Vec<String>>(cx).unwrap_or(vec![]);
+
+    let data_from_handler_view = data_from_route_handler
+        .iter()
+        .map(|_| {
+            view! {cx,
+                <div on:click=move |_| {
+                    log!("data_from_handler_view on:click");
+                }>"data_from_handler_view"</div>
+            }
+        })
+        .collect::<Vec<_>>();
+
+    view! { cx,
+        //  it renders but it doesn't log when clicked
+        {data_from_handler_view}
+
+        //  same as above
+        <For
+            each=move || data_from_route_handler.clone()
+            key = |n| n.clone()
+            view=|cx, item| {
+                view! {cx,
+                    <div on:click=move |_| {
+                        log!("data_from_route_handler on:click");
+                    }>
+                        "data_from_route_handler"
+                        <ChildComponent/>
+                    </div>
+                }
+            }
+            />
+    }
 }
 
 #[component]
-fn HomePage(cx: Scope) -> impl IntoView {
-    leptos::spawn_local(async move {
-        let res = api_endpoint().await;
-        match res {
-            Ok(_) => {}
-            Err(e) => match e {
-                ServerFnError::ServerError(msg) => {
-                    leptos::log!("this is the error message: {}", msg);
-                }
-                _ => {}
-            },
-        }
-    });
-    view! { cx,
-        <h1></h1>
+pub fn ChildComponent(cx: Scope) -> impl IntoView {
+    view! {cx,
+        <div on:click=move |_| {
+            log!("ChildComponent on:click");
+        }>"ChildComponent"</div>
     }
 }
